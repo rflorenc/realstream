@@ -15,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	nsq "github.com/bitly/go-nsq"
 	"github.com/joeshaw/envdecode"
 	"github.com/matryer/go-oauth/oauth"
+	"github.com/nsqio/go-nsq"
 	"gopkg.in/mgo.v2"
 )
 
@@ -85,6 +85,7 @@ func main() {
 	publisherStopChan := make(chan struct{}, 1)
 	stop := false
 	signalChan := make(chan os.Signal, 1)
+
 	go func() {
 		<-signalChan
 		stop = true
@@ -92,17 +93,19 @@ func main() {
 		closeConn()
 	}()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	votes := make(chan string) // chan for votes
+
+	votes := make(chan string)
 	go func() {
 		pub, _ := nsq.NewProducer("localhost:4150", nsq.NewConfig())
 		for vote := range votes {
-			pub.Publish("votes", []byte(vote)) // publish vote
+			pub.Publish("votes", []byte(vote))
 		}
 		log.Println("Publisher: Stopping")
 		pub.Stop()
 		log.Println("Publisher: Stopped")
 		publisherStopChan <- struct{}{}
 	}()
+
 	go func() {
 		defer func() {
 			twitterStopChan <- struct{}{}
@@ -148,8 +151,8 @@ func main() {
 				log.Println("Error getting response:", err)
 				continue
 			}
+
 			if resp.StatusCode != http.StatusOK {
-				// this is a nice way to see what the error actually is:
 				s := bufio.NewScanner(resp.Body)
 				s.Scan()
 				log.Println(s.Text())
@@ -192,7 +195,7 @@ func main() {
 		}
 	}()
 
-	<-twitterStopChan // important to avoid panic
+	<-twitterStopChan
 	close(votes)
 	<-publisherStopChan
 

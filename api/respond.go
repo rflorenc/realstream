@@ -6,20 +6,10 @@ import (
 	"net/http"
 )
 
-// abstract API response code into helper functions
-
-// we are going to speak only JSON for now
-
-// TODO:
-// if we need to add other representations later
-// or switch to a binary protocol instead i.e.: protobuf,
-// we need only to change these two functions
-
 func decodeBody(r *http.Request, v interface{}) error {
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(v)
 }
-
 func encodeBody(w http.ResponseWriter, r *http.Request, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
@@ -32,7 +22,6 @@ func respond(w http.ResponseWriter, r *http.Request,
 		encodeBody(w, r, data)
 	}
 }
-
 func respondErr(w http.ResponseWriter, r *http.Request,
 	status int, args ...interface{},
 ) {
@@ -42,9 +31,6 @@ func respondErr(w http.ResponseWriter, r *http.Request,
 		},
 	})
 }
-
-// HTTP error-specific helper that will generate the correct
-// message for us
 func respondHTTPErr(w http.ResponseWriter, r *http.Request,
 	status int,
 ) {

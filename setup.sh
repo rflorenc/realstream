@@ -1,24 +1,25 @@
 #!/bin/bash
-
 source twitter.env
 
-nsqlookupd
-nsqd --lookupd-tcp-address=localhost:4160
+nsqlookupd &
+nsqd --lookupd-tcp-address=localhost:4160 &
 
-mongod --dbpath ./db &
-# > use ballots
-# switched to db ballots
-# > db.polls.insert({"title":"Test poll","options":["one","two","three"]})
-# > db.polls.insert({"title":"Test poll two","options":["four","five","six"]})
-#
+if [[ ! -d db ]]; then
+    mkdir -vp db
+else
+    mongod --dbpath ./db &
+fi
 
-./counter
-./twittervotes
-./api
-# curl -s  http://localhost:8080/polls/?key=abc123 | python -m json.tool
-./web
+for app in counter twittervotes api web
+do
+    cd $app
+    go get -v
+    go build -v -o $app
+    ./$app &
+    cd -
+done
 
+echo "Open a browser and head to http://localhost:8081/"
 
-#nsq_tail --topic="votes" --lookupd-http-address=localhost:4161
-
-
+echo "Done"
+exit 0
